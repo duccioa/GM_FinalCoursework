@@ -2,39 +2,71 @@ library(lubridate)
 library(dplyr)
 library(ggplot2)
 library(plyr)
+library(data.table)
+data_names <- names(trip_data_8)
+fare_names <- names(trip_fare_8)
+
+read.NYCData(8, 2000000)
 
 
-read.NYCData(10, 100000)
-data_names <- names(trip_data_10)
-fare_names <- names(trip_fare_10)
-trip_data_10 <- trip_data_10[,c(2,6,7,9,10,11,12,13,14)]
-trip_fare_10 <- trip_fare_10[,c(2,4,6,7,8,9,10,11)]
-#taxis10 <- merge(trip_data_10, trip_fare_10, by = ("hack_license"), sort = FALSE)
-#taxis10 <- join(trip_data_10, trip_fare_10, type = "inner")
-taxis10 <- join(trip_data_10, trip_fare_10)
-names(taxis10) <- c("license", "p_time", "d_time", "trip_time", 
-                    "trip_dist", "p_long", "p_lat", "d_long",
-                    "d_lat", "fare_amount", "surcharge", "mta_tax",
-                    "tip_amount", "tolls_amount", "total_amount")
 
+
+
+prepare.DATA <- function(month = 1){
+    require(lubridate)
+    trip_data <- get(paste("trip_data_", month, sep = ""))
+    trip_fare <- get(paste("trip_fare_", month, sep = ""))
+    data_names <- make.names(names(trip_data))#remove illegal characters
+    fare_names <- make.names(names(trip_fare))
+    setnames(trip_data, data_names)
+    setnames(trip_fare, fare_names)
+    setkey(trip_data, medallion, X.hack_license, X.vendor_id, X.pickup_datetime)
+    setkey(trip_fare, medallion, X.hack_license, X.vendor_id, X.pickup_datetime)
+    print("Removing duplicates")
+    trip_data <- trip_data[!duplicated(trip_data),]#remove row duplicates
+    trip_fare <- trip_fare[!duplicated(trip_fare),]#remove row duplicates
+    print("Merging trips and fares")
+    taxis <- trip_data[trip_fare]#merge trips and fares
+    taxis <- taxis[,.(X.hack_license, X.pickup_datetime, X.dropoff_datetime, X.trip_time_in_secs,
+                      X.trip_distance, X.pickup_longitude, X.pickup_latitude, X.dropoff_longitude,
+                      X.dropoff_latitude, X.fare_amount, X.surcharge, X.mta_tax, X.tip_amount, X.tolls_amount, 
+                      X.total_amount)]#select relevant columns
+    names_taxis <- c("license", "p_time", "d_time", "trip_time", 
+                     "trip_dist", "p_long", "p_lat", "d_long",
+                     "d_lat", "fare_amount", "surcharge", "mta_tax",
+                     "tip_amount", "tolls_amount", "total_amount")
+    setnames(taxis, names_taxis)
+    #Remove outliers and wrong values
+    taxis <- taxis[taxis$trip_time > 0]
+    max_val <- quantile(taxis$trip_time, 0.99)
+    min_val <- quantile(taxis$trip_time, 0.01)
+    taxis <- taxis[taxis]
+    
+    print("Converting dates and times")
+    print("p_time")
+    taxis$p_time <- ymd_hms(taxis$p_time)
+    print("d_time")
+    taxis$d_time <- ymd_hms(taxis$d_time)
+    print("Factor month")
+    taxis$month <- as.factor(month)
+    print("Factor wday")
+    taxis$wday <- as.factor(wday(taxis$p_time))
+    print("Weekday")
+    taxis$weekday <- TRUE
+    taxis$weekday[taxis$wday == 6 | taxis$wday == 7] <- FALSE
+    
+    #rm(paste("trip_data_", month, sep = ""), paste("trip_fare_", month, sep = ""))
+    assign(paste("taxis", month, sep = "_"), taxis, envir = .GlobalEnv)
+}
+
+
+preliminary_ANALYSIS <- function(month = 1){
+    require(dplyr)
+    taxis <- get(paste("taxis", month, sep = "_"))
+    
+}
                      
-
-nyc_taxis <- read.csv("./Archive/NYC_Taxi_Data/nyc_taxi_data.csv.gz", nrows = 1000000)
-head(nyc_taxis)
-col.names <- data.frame(names(nyc_taxis))
-str(nyc_taxis)
-
-trips <- read.csv("./data/trip_data_1.csv", stringsAsFactors = FALSE)
-fares <- read.csv(".data/trip_fare_1.csv", stringsAsFactors = FALSE)
-trip_names <- data.frame(names(trips))
-trips$pickup_datetime <- ymd_hms(trips$pickup_datetime)
-trips$dropoff_datetime <- ymd_hms(trips$dropoff_datetime)
-trips$medallion <- as.factor(trips$medallion)
-trips$hack_license <- as.factor(trips$hack_license)
-trips$vendor_id <- as.factor(trips$hack_license)
-distance <- trips[,c(1,2,9,10)]
-smr_dist <- summarise(group_by(distance, hack_license), avg_dist = mean(trip_distance))
-smr_dist <- smr_dist[smr_dist$avg_dist < quantile(smr_dist$avg_dist, 0.99),]
-g <- ggplot(smr_dist, aes(x = avg_dist, y = ..density..))
-g <- g + geom_histogram(colour = "black", fill = "goldenrod1", binwidth = .1)
-g + geom_density(colour = "blue", size = 1, adjust = 4)
+library(doParallel)
+registerDoParallel(cores = 6)
+foreach(i = 8) %dopar% read.NYCData(i,-1)
+foreach(i = 8) %dopar% prepare.DATA(i)
