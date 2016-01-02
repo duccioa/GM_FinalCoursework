@@ -1,17 +1,3 @@
-library(lubridate)
-library(dplyr)
-library(ggplot2)
-library(plyr)
-library(data.table)
-data_names <- names(trip_data_8)
-fare_names <- names(trip_fare_8)
-
-read.NYCData(8, 2000000)
-
-
-
-
-
 prepare.DATA <- function(month = 1){
     require(data.table)
     require(lubridate)
@@ -119,14 +105,3 @@ prepare.DATA <- function(month = 1){
     assign(paste("taxis", month, sep = "_"), taxis, envir = .GlobalEnv)
 }
 
-
-preliminary_ANALYSIS <- function(month = 1){
-    require(dplyr)
-    taxis <- get(paste("taxis", month, sep = "_"))
-    
-}
-                     
-library(doParallel)
-registerDoParallel(cores = 6)
-foreach(i = 8) %dopar% read.NYCData(i,-1)
-foreach(i = 8) %dopar% prepare.DATA(i)
