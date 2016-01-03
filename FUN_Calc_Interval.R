@@ -1,21 +1,21 @@
-calc.Interval <- function(dt){
-    require(data.table)
-    new_dt <- dt[0,]
-    new_dt$Interval <- 0
-    dt <- setorder(dt, license, p_time)
-    Licenses <- unique(dt$license)
-    for(i in Licenses){
-        dt_byL <- dt[license == i]
-        n <- nrow(dt_byL)
-        d_time <- dt_byL[1:(n-1), d_time]
-        next_p_time <- dt_byL[2:n, p_time]
-        Interval <- next_p_time - d_time
-        dt_byL <- dt_byL[-n,]
-        dt_byL$Interval <- as.numeric(Interval)
-        new_dt <- rbind(new_dt, dt_byL)
+calc.Interval <- function(dt, license_num){
+    setkey(dt, license)
+    dt_byL <- dt[license == license_num, .(license,p_time, d_time)]
+    n <- nrow(dt_byL)
+    if(n > 100){#exclude drivers with less than 100 trips in a month
+    Interval <- dt_byL[2:n, p_time] - dt_byL[1:(n-1), d_time]
+    Interval <- append(Interval, NA, after = length(Interval))
     }
-    return(new_dt)
+    else{Interval <- rep(NA, n)}
+    return(Interval)
 }
-new_taxis <- calc.Interval(taxis_8)
-new_taxis <- foreach(i = taxis_8) %dopar% calc.Interval(taxis_8)
-debug(calc.Interval)
+
+iter.calc.Int <- function(dt){
+    licenses <- unique(dt$license)
+    Interval <- NULL
+    for(i in licenses){
+        v <- calc.Interval(dt, i)
+        Interval <- append(Interval, v, after = length(v))
+    }
+    return(Interval)
+}

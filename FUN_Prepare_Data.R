@@ -134,7 +134,7 @@ prepare.DATA <- function(dt_list){
     print("Weekday")
     taxis$weekday <- TRUE
     taxis$weekday[taxis$wday == 6 | taxis$wday == 7] <- FALSE
-    
+    setorder(taxis, license, p_time)
     assign(paste("taxis", month, sep = "_"), taxis, envir = .GlobalEnv)
 }
 

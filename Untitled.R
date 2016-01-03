@@ -1,7 +1,0 @@
-library(lubridate)
-library(dplyr)
-library(ggplot2)
-trip_data_1 <- read.csv(unz("./data/zip_files/trip_data_1.csv.zip", "trip_data_1.csv"), nrows = 10000)
-write.table(trip_data_1, "./data/zip_files/trip_data_1.csv")
-system("gzip ./data/zip_files/trip_data_1.csv")
-files <- list.files("./data/zip_files/")
