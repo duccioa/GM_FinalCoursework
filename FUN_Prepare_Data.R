@@ -17,25 +17,22 @@ prepare.DATA <- function(dt_list){
     trip_fare <- trip_fare[!duplicated(trip_fare),]#remove row duplicates
     print("Merging trips and fares")
     taxis <- trip_data[trip_fare]#merge trips and fares
-    taxis <- taxis[,.(X.hack_license, X.pickup_datetime, X.dropoff_datetime, X.trip_time_in_secs,
+    taxis <- taxis[,.(X.hack_license, X.pickup_datetime, X.dropoff_datetime, 
                       X.trip_distance, X.pickup_longitude, X.pickup_latitude, X.dropoff_longitude,
                       X.dropoff_latitude, X.fare_amount, X.surcharge, X.mta_tax, X.tip_amount, X.tolls_amount, 
                       X.total_amount)]#select relevant columns
-    names_taxis <- c("license", "p_time", "d_time", "trip_time", 
+    names_taxis <- c("license", "p_time", "d_time",  
                      "trip_dist", "p_long", "p_lat", "d_long",
                      "d_lat", "fare_amount", "surcharge", "mta_tax",
                      "tip_amount", "tolls_amount", "total_amount")
     setnames(taxis, names_taxis)
-    ####Remove outliers and wrong values
-    #Remove negative and very short and very long trip times
-    print("Remove outliers")
-    print("Trip_time")
+    ####Remove NAs
+    print("Remove NAs")
     n<- nrow(taxis)
-    taxis <- taxis[trip_time > 0]
-    max_val <- quantile(taxis$trip_time, 0.99)
-    min_val <- quantile(taxis$trip_time, 0.01)
-    taxis <- taxis[trip_time >= min_val & trip_time <= max_val]
+    taxis <- taxis[complete.cases(taxis), ]
     print(paste(n-nrow(taxis), " lines removed ", "(",round(nrow(taxis)/n, 2), "%)", sep = ""))
+    ####Remove outliers and wrong values
+    print("Remove outliers")
     #Remove outliers in trip distances
     print("Trip_dist")
     n<- nrow(taxis)
