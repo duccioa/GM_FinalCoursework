@@ -1,8 +1,11 @@
-prepare.DATA <- function(month = 1){
+#Takes as an input a list with three elements: one data.table with trips, one dt with fares
+#and the number of the month
+prepare.DATA <- function(dt_list){
     require(data.table)
     require(lubridate)
-    trip_data <- get(paste("trip_data_", month, sep = ""))
-    trip_fare <- get(paste("trip_fare_", month, sep = ""))
+    trip_data <- dt_list[[1]]
+    trip_fare <- dt_list[[2]]
+    month <- dt_list[[3]]
     data_names <- make.names(names(trip_data))#remove illegal characters
     fare_names <- make.names(names(trip_fare))
     setnames(trip_data, data_names)
@@ -88,7 +91,37 @@ prepare.DATA <- function(month = 1){
     min_val <- quantile(taxis$total_amount, 0.01)
     taxis <- taxis[total_amount >= min_val & total_amount <= max_val]
     print(paste(n-nrow(taxis), " lines removed ", "(",round(nrow(taxis)/n, 2), "%)", sep = ""))
+    #Remove outliers in p_long
+    print("P_long")
+    n<- nrow(taxis)
+    max_val <- quantile(taxis$p_long, 0.99)
+    min_val <- quantile(taxis$p_long, 0.01)
+    taxis <- taxis[p_long >= min_val & p_long <= max_val]
+    print(paste(n-nrow(taxis), " lines removed ", "(",round(nrow(taxis)/n, 2), "%)", sep = ""))
+    #Remove outliers in p_lat
+    print("P_lat")
+    n<- nrow(taxis)
+    max_val <- quantile(taxis$p_lat, 0.99)
+    min_val <- quantile(taxis$p_lat, 0.01)
+    taxis <- taxis[p_lat >= min_val & p_lat <= max_val]
+    print(paste(n-nrow(taxis), " lines removed ", "(",round(nrow(taxis)/n, 2), "%)", sep = ""))
+    #Remove outliers in d_long
+    print("d_lat")
+    n<- nrow(taxis)
+    max_val <- quantile(taxis$d_long, 0.99)
+    min_val <- quantile(taxis$d_long, 0.01)
+    taxis <- taxis[d_long >= min_val & d_long <= max_val]
+    print(paste(n-nrow(taxis), " lines removed ", "(",round(nrow(taxis)/n, 2), "%)", sep = ""))
+    #Remove outliers in d_lat
+    print("d_lat")
+    n<- nrow(taxis)
+    max_val <- quantile(taxis$d_lat, 0.99)
+    min_val <- quantile(taxis$d_lat, 0.01)
+    taxis <- taxis[d_lat >= min_val & d_lat <= max_val]
+    print(paste(n-nrow(taxis), " lines removed ", "(",round(nrow(taxis)/n, 2), "%)", sep = ""))
     
+    print("Factor license")
+    taxis$license <- as.factor(taxis$license)
     print("Converting dates and times")
     print("p_time")
     taxis$p_time <- ymd_hms(taxis$p_time)
