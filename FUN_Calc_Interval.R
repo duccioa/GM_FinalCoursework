@@ -1,3 +1,4 @@
+###Calculate the idle time, that is the interval between a drop-off and the next pick-up
 calc.Interval <- function(dt, license_num){
     require(data.table)
     dt_byL <- dt[license == license_num, .(license,p_time, d_time)]

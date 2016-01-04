@@ -1,7 +1,5 @@
-iter.WorkingDay <- function(dt, license_num){
-    Int_Status <- dt[license == license_num, Int_Status]
-    return(working.day(Int_Status))
-}
+#Takes a vector of WORK/BREAK factors and return an number of the day
+#which increments at every BREAK
 Working.Day <- function(v){
     x <- rep(0, length(v))
     flag <- 1
@@ -13,4 +11,9 @@ Working.Day <- function(v){
         }
     }
     return(x)
+}
+#Iterate the function above to be used with foreach() %dopar%
+iter.WorkingDay <- function(dt, license_num){
+    Int_Status <- dt[license == license_num, Int_Status]
+    return(working.day(Int_Status))
 }

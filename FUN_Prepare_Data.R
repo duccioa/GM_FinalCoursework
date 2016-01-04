@@ -32,7 +32,7 @@ prepare.DATA <- function(dt_list){
     taxis <- taxis[complete.cases(taxis), ]
     print(paste(n-nrow(taxis), " lines removed ", "(",round(nrow(taxis)/n, 2), "%)", sep = ""))
     ####Remove outliers and wrong values
-    print("Remove outliers")
+    print("REMOVE OUTLIERS AND WRONG ENTRIES")
     #Remove outliers in trip distances
     print("Trip_dist")
     n<- nrow(taxis)
@@ -116,7 +116,8 @@ prepare.DATA <- function(dt_list){
     min_val <- quantile(taxis$d_lat, 0.01)
     taxis <- taxis[d_lat >= min_val & d_lat <= max_val]
     print(paste(n-nrow(taxis), " lines removed ", "(",round(nrow(taxis)/n, 2), "%)", sep = ""))
-    
+    ##Data manipulation
+    print("DATA MANIPULATION AND EXTRA COLUMNS")
     print("Factor license")
     taxis$license <- as.factor(taxis$license)
     print("Converting dates and times")
@@ -129,8 +130,18 @@ prepare.DATA <- function(dt_list){
     print("Factor wday")
     taxis$wday <- as.factor(wday(taxis$p_time))
     print("Weekday")
-    taxis$weekday <- TRUE
-    taxis$weekday[taxis$wday == 6 | taxis$wday == 7] <- FALSE
+    taxis$weekday <- "WEEKDAY"
+    taxis$weekday[taxis$wday == 6 | taxis$wday == 7] <- "WEEKEND"
+    taxis$weekday <- as.factor(taxis$weekday)
+    print("DayTime")
+    taxis$DayTime <- "DAY"
+    taxis$DayTime[hour(taxis$p_time) >= 19 | hour(taxis$p_time) < 7] <- "NIGHT"
+    taxis$DayTime <- as.factor(taxis$DayTime)
+    #setcolorder(taxis, c("license", "p_time", "month", "wday", "weekday", "DayTime",
+                         #"d_time", "trip_dist", "p_long", "p_lat", "d_long", "d_lat",
+                         #"fare_amount", "surcharge", "mta_tax", "tip_amount",
+                         #"tolls_amount", "total_amount"))
+    
     setorder(taxis, license, p_time)
     assign(paste("taxis", month, sep = "_"), taxis, envir = .GlobalEnv)
 }
