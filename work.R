@@ -1,4 +1,5 @@
 library(doParallel)
+library(ggplot2)
 if(!exists("prepare.DATA", mode="function")) source("./00_GM_code/FUN_Prepare_Data.R")
 if(!exists("calc.Interval", mode="function")) source("./00_GM_code/FUN_Calc_Interval.R")
 if(!exists("read.NYCData", mode="function")) source("./00_GM_code/FUN_Read_Data.R")
@@ -25,20 +26,29 @@ taxis <- taxis[!is.na(taxis$TripTime_mins) & TripTime_mins > 0 &
 taxis[,partial_TOT := Int_mins + TripTime_mins]#Calculate time between pick-ups
 taxis[partial_TOT > 180, partial_TOT := 0]#Stretches between pick-ups longer than three hours are considered as breaks
 taxis[, DayDate := as.factor(day(p_time))]
+taxis <- taxis[partial_TOT != 0 & partial_TOT > quantile(taxis$partial_TOT, .01),]
+summary(taxis$partial_TOT)
+
 
 #########################################################################
 ###################DATA ANALYSIS#########################################
 #########################################################################
 ###FIT by WEEKEND/WEEKDAY and DAY/NIGHT
-by_DateTime_WeekDay <- taxis[,.(HourlyFare = sum(fare_amount)*60/sum(partial_TOT)), by = .(DayTime, weekday)]
-by_DateTime_WeekDay <- by_DateTime_WeekDay[HourlyFare != Inf,]
+by_DateTime_WeekDay <- taxis[,.(HourlyFare = sum(fare_amount)*60/sum(partial_TOT)), by = .(license, DayTime, weekday)]
+summary(by_DateTime_WeekDay)
 fit1 <- lm(HourlyFare ~ weekday + DayTime, by_DateTime_WeekDay)
 summary(fit1)
-###FIT by day of the week
-by_Wday <- taxis[,.(HourlyFare = sum(fare_amount)*60/sum(partial_TOT)), by = .(wday)]
-by_Wday <- by_Wday[HourlyFare != Inf,]
-fit2 <- lm(HourlyFare ~ weekday + DayTime, by_Wday)
+###FIT by day of the week and DAY/NIGHT
+by_Wday_DayTime <- taxis[,.(HourlyFare = sum(fare_amount)*60/sum(partial_TOT)), by = .(license, DayTime, wday)]
+fit2 <- lm(HourlyFare ~ wday + DayTime, by_Wday_DayTime)
 summary(fit2)
+###FIT by the day of the week
+by_Wday <- taxis[,.(HourlyFare = sum(fare_amount)*60/sum(partial_TOT)), by = .(license, wday)]
+by_Wday <- by_Wday[HourlyFare > quantile(by_Wday$HourlyFare, .025) & 
+                      HourlyFare < quantile(by_Wday$HourlyFare, .975)]
+fit3 <- lm(HourlyFare ~ wday, by_Wday)
+summary(fit3)
+g <- ggplot(by_Wday, aes(x = wday, y = HourlyFare)) + geom_boxplot()
 
 HourlyFare_byLicense <- TimeFare_byDay[,.(AvgHrFare = mean(HourlyFare)), by = .(license, DayTime)]
 HourlyFare_byLicense <- HourlyFare_byLicense[AvgHrFare != Inf,]

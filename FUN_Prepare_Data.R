@@ -135,7 +135,7 @@ prepare.DATA <- function(dt_list){
     taxis$weekday <- as.factor(taxis$weekday)
     print("DayTime")
     taxis$DayTime <- "DAY"
-    taxis$DayTime[hour(taxis$p_time) >= 19 | hour(taxis$p_time) < 7] <- "NIGHT"
+    taxis$DayTime[hour(taxis$p_time) >= 20 | hour(taxis$p_time) < 6] <- "NIGHT"
     taxis$DayTime <- as.factor(taxis$DayTime)
     #setcolorder(taxis, c("license", "p_time", "month", "wday", "weekday", "DayTime",
                          #"d_time", "trip_dist", "p_long", "p_lat", "d_long", "d_lat",
