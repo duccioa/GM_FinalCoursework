@@ -50,12 +50,39 @@ nyc_closeup2 <- crop(nyc, Sr4)
 
 
 #################### RASTER GRID ###############################################
+### Prepare the shape file
 x1 = -74.042; x2 = -73.942; y1 = 40.7; y2 = 40.76; c_list <- create.bbox(list(c(x1,x2), c(y1,y2)));
+nyc_c <- crop(nyc_map, c_list)
+##############################
+### Prepare the raster grid
+raster.grid <- function(d = 0.0001, EXT){
+    dim.x <- d
+    dim.y <- d
+    bb <- bbox(EXT)
+    cells.x <- (bb[1,2]-bb[1,1])/dim.x
+    cells.y <- (bb[2,2]-bb[2,1])/dim.x
+    round.vals <- function(x){
+        if(as.integer(x) < x){x <- as.integer(x)+1}
+        else{x <- as.integer(x)}
+    }
+    cells.x <<- round.vals(cells.x)
+    cells.y <<- round.vals(cells.y)
+    ext <- extent(c(bb[1,1], bb[1,1] + cells.x*d, bb[2,1], bb[2,1] + cells.y*d))
+    r <- raster(ncols = cells.x, nrow = cells.y)
+    extent(r) <- ext
+    return(r)
+}
+values(r) <- matrix(runif(cells.x*cells.y), nrow = cells.y, ncol = cells.x)
+plot(r)
+plot(nyc_c, add = TRUE)
+##############################
+### Spatial Grid DataFrame
+rg <- as(r, "SpatialGridDataFrame")
+rp <- as(r, "SpatialPixelDataFrame")
 
-nyc_c <- crop(nyc, c_list)
-xgrid <- seq(x1, x2, by = .002)#width 0.1
-ygrid <- seq(y1, y2, by = .002)
-G <- 
+
+
+
 
 
 
