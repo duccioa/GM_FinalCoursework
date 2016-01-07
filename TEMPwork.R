@@ -30,7 +30,11 @@ taxis <- taxis_4; rm(taxis_4)
 #select random drivers 
 
 
-
+Licenses <- unique(taxis$license)
+n_Licenses <- length(Licenses)
+perc <- 100 #Size in percent of the random sample
+selection <- sample(Licenses, round(n_Licenses/(100/perc)))#create the random sample
+taxis <- taxis[license %in% selection]#extract data of the selected drivers only
 #Calculate interval between drop-off time and next pick-up time
 #which corresponds to idle time
 taxis[, Idle_mins := foreach(i = selection, .combine = "c") 
@@ -45,7 +49,6 @@ taxis <- taxis[TripTime_mins > quantile(taxis$TripTime_mins, 0.01) & TripTime_mi
 save(taxis, file = paste("./data/taxis_", month, "_", perc, ".RData", sep = ""))
 #Calculate time between two consecutive pick-ups
 taxis[,partial_TOT := Idle_mins + TripTime_mins]
-taxis <- taxis[partial_TOT != 0 & partial_TOT > quantile(taxis$partial_TOT, .01),]
 
 #Differentiate between idle time during working hours and breaks 
 #(e.g. lunch time or night time)

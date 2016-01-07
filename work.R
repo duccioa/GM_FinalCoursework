@@ -6,6 +6,7 @@ library(rgeos)
 library(sp)
 library(raster)
 library(data.table)
+library(lubridate)
 if(!exists("prepare.DATA", mode="function")) source("./00_GM_code/FUN_Prepare_Data.R")
 if(!exists("calc.Interval", mode="function")) source("./00_GM_code/FUN_Calc_Interval.R")
 if(!exists("read.NYCData", mode="function")) source("./00_GM_code/FUN_Read_Data.R")
@@ -63,9 +64,12 @@ nrow(taxis[partial_TOT == 0])
 #########################################################################
 ###By location
 #New York's extent
+####Load the shape file of NYC
+if(!(exists("nyc_map")|exists("nyc_grid")))nyc_map <- readOGR("./data/NYC_shapefile/", "roads")
+#Create the extent
 min.x = -74.03027; max.x = -73.77487; min.y = 40.63720; max.y = 40.87865;
-nyc_grid <- crop(nyc_map, create.bbox(list(c(min.x,max.x), c(min.y,max.y))))
-
+if(!exists("nyc_grid"))nyc_grid <- crop(nyc_map, create.bbox(list(c(min.x,max.x), c(min.y,max.y))))
+#Create location categories for long and lat
 taxis[,p_long_CAT := cut(p_long, breaks = 3)]; levels(taxis$p_long_CAT) <- c("E","C","W")
 taxis[,p_lat_CAT := cut(p_lat, breaks = 3)]; levels(taxis$p_lat_CAT) <- c("S","C","N")
 taxis[,loc_CAT := as.factor(paste(p_lat_CAT, p_long_CAT, sep = ""))]
@@ -74,17 +78,10 @@ taxis[,loc_CAT := as.factor(paste(p_lat_CAT, p_long_CAT, sep = ""))]
 ################## DATA ANALYSIS - part 2 ###############################
 #########################################################################
 ################## Probability matrix ###################################
-###Load the shape file of NYC
-nyc_map <- readOGR("./data/NYC_shapefile/", "roads")
-#################### RASTER GRID ###############################################
-### Prepare the shape file
-x1 = -74.042; x2 = -73.942; y1 = 40.7; y2 = 40.76; 
-c_list <- create.bbox(list(c(x1,x2), c(y1,y2)))
-nyc_c <- crop(nyc_map, c_list)
 ### Subset the database by hour and day
 taxis_cut <- cut.taxis(taxis, 10, 8)
 
-r <- raster.grid(d = 0.002, EXT = nyc_c)
+r <- raster.grid(d = 0.002, EXT = nyc_grid)
 #rg <- as(r, "SpatialGrid")
 spdf <- SpatialPointsDataFrame(cbind(taxis_cut$p_long, taxis_cut$p_lat), data.frame(taxis_cut))
 proj4string(spdf) <- CRS("+init=epsg:4326")
@@ -97,4 +94,53 @@ r[as.numeric(names(tab))] <- tab
 
 plot(r, col = heat.colors(10))
 plot(nyc_c, add = T)
+###Extract taxis probability data frame "tp"
+h <- 10
+t <- 22.5
+ht <- as.numeric(paste(h, formatC(t, width = 2, flag = "0"), sep = ""))
+tp <- taxis[, .(license, p_time, d_time, p_long, p_lat, d_long, d_lat, DayDate, Idle_mins, TripTime_mins, partial_TOT)]
+tp[, Hour := as.factor(hour(p_time))]
+
+tp[, Int_CAT := cut(minute(p_time), breaks = c(0,15,30,45,60), labels = c("07.5","22.5","37.5","52.5"))]
+tp[, Int1 := cut(minute(p_time), breaks = c(0,15,30,45,60), labels = c("00","15","30","45"))]
+tp[, Int2 := cut(minute(p_time), breaks = c(0,15,30,45,60), labels = c("15","30","45","60"))]
+tp$h1 <- as.numeric(paste(tp$Hour, tp$Int_CAT, sep = "")) - 37.5
+tp$h2 <- as.numeric(paste(tp$Hour, tp$Int_CAT, sep = "")) + 37.5
+tp$Int1 <- as.numeric(paste(tp$Hour, tp$Int1, sep = ""))
+tp$Int2 <- as.numeric(paste(tp$Hour, tp$Int2, sep = ""))
+tp <- tp[!is.na(Int1) & !is.na(Int2)]
+
+tph <- tp[tp$h1 < ht & tp$h2 > ht]
+TOT_drv_t <- length(unique(tph$license))
+tph[,PT := as.numeric(paste(hour(p_time), formatC(minute(p_time), width = 2, flag = "0"), sep = ""))]
+tph[,DT := as.numeric(paste(hour(d_time), formatC(minute(d_time), width = 2, flag = "0"), sep = ""))]
+tph[,FREE := ifelse(PT < Int1 & DT > Int2, FALSE, TRUE)]
+tpb <- tph[FREE != TRUE]
+TOT_busy_t <- length(unique(tpb$license))
+
+####################
+####################
+d <- 10#pick the day
+Int1 <- 1025#Start of the interval
+Int2 <- Int1 + 15
+Int_h1 <- Int1 - 37.5
+Int_h2 <- Int2 + 37.5
+tp <- taxis[DayDate == d, .(license, p_time, d_time, p_long, p_lat, 
+                d_long, d_lat, DayDate, 
+                Idle_mins = round(Idle_mins), 
+                TripTime_mins = round(TripTime_mins), 
+                partial_TOT = round(partial_TOT))]
+tp[,p_time := as.numeric(paste(hour(p_time), formatC(minute(p_time), width = 2, flag = "0"), sep = ""))]
+tp[,d_time := as.numeric(paste(hour(d_time), formatC(minute(d_time), width = 2, flag = "0"), sep = ""))]
+tp[,np_time := d_time + Idle_mins]
+
+tph <- tp[(p_time > Int_h1 & p_time < Int_h2) | (d_time > Int_h1 & d_time < Int_h2)]
+TOT_drv_t <- length(unique(tph$license))#Total number of drivers during the hour around the interval
+tph[, BUSY := ifelse(p_time < Int1 & d_time > Int2, TRUE, FALSE)]
+BUSY_drv_t <- length(tph$license[tph$BUSY])
+tph[, PICK := ifelse(p_time >= Int1 & p_time <= Int2, TRUE, FALSE)]
+tpp <- tph[tph$PICK,]
+TOT_pick_t <- length(unique(tpp$license))
+
+
 

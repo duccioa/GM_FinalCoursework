@@ -1,3 +1,5 @@
+#Return a subset of the taxis data.table given by a random sample of the licenses
+#size perc %
 sample.taxis <- function(taxis, perc){
     require(data.table)
     Licenses <- unique(taxis$license)
