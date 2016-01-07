@@ -86,19 +86,3 @@ rp <- as(r, "SpatialPixelDataFrame")
 
 
 
-
-
-
-###Plot data
-plot(nyc_crop, col = "white", bg = "black", lwd = .1)
-points(taxis10$p_long, taxis10$p_lat, pch = 20, cex = .1, col = add.alpha("green", .1))
-
-plot(manhattan, col = "white", bg = "black", lwd = .1)
-points(taxis10$p_long, taxis10$p_lat, pch = 20, cex = .1, col = add.alpha("green", .1))
-
-plot(nyc_closeup, col = "white", bg = "black", lwd = 2)
-points(taxis10$p_long, taxis10$p_lat, pch = 20, cex = .1, col = add.alpha("yellow", .1))
-
-plot(nyc_closeup2, col = "white", bg = "black", lwd = .3)
-points(taxis10$p_long, taxis10$p_lat, pch = 20, cex = .2, col = add.alpha("yellow", .1))
-points(taxis10$d_long, taxis10$d_lat, pch = 20, cex = .2, col = add.alpha("red", .1))

@@ -32,88 +32,25 @@ prepare.DATA <- function(dt_list){
     taxis <- taxis[complete.cases(taxis), ]
     print(paste(n-nrow(taxis), " lines removed ", "(",round(nrow(taxis)/n, 2), "%)", sep = ""))
     ####Remove outliers and wrong values
-    print("REMOVE OUTLIERS AND WRONG ENTRIES")
-    #Remove outliers in trip distances
-    print("Trip_dist")
-    n<- nrow(taxis)
-    max_val <- quantile(taxis$trip_dist, 0.999)
-    min_val <- quantile(taxis$trip_dist, 0.01)
-    taxis <- taxis[trip_dist >= min_val & trip_dist <= max_val]
-    print(paste(n-nrow(taxis), " lines removed ", "(",round(nrow(taxis)/n, 2), "%)", sep = ""))
-    #Remove outliers in fare amount
-    print("Fare_amount")
-    n<- nrow(taxis)
-    taxis <- taxis[fare_amount > 0]
-    max_val <- quantile(taxis$fare_amount, 0.999)
-    min_val <- quantile(taxis$fare_amount, 0.01)
-    taxis <- taxis[fare_amount >= min_val & fare_amount <= max_val]
-    print(paste(n-nrow(taxis), " lines removed ", "(",round(nrow(taxis)/n, 2), "%)", sep = ""))
-    #Remove outliers in surcharge
-    print("Surcharge")
-    n<- nrow(taxis)
-    taxis <- taxis[surcharge >= 0]
-    max_val <- quantile(taxis$surcharge, 0.999)
-    min_val <- quantile(taxis$surcharge, 0.01)
-    taxis <- taxis[surcharge >= min_val & surcharge <= max_val]
-    print(paste(n-nrow(taxis), " lines removed ", "(",round(nrow(taxis)/n, 2), "%)", sep = ""))
-    #Remove outliers in mta_tax
-    print("Mta_tax")
-    n<- nrow(taxis)
-    taxis <- taxis[mta_tax >= 0]
-    max_val <- quantile(taxis$mta_tax, 0.999)
-    min_val <- quantile(taxis$mta_tax, 0.01)
-    taxis <- taxis[mta_tax >= min_val & mta_tax <= max_val]
-    print(paste(n-nrow(taxis), " lines removed ", "(",round(nrow(taxis)/n, 2), "%)", sep = ""))
-    #Remove outliers in tip_amount
-    print("Tip_amount")
-    n<- nrow(taxis)
-    taxis <- taxis[tip_amount >= 0]
-    max_val <- quantile(taxis$tip_amount, 0.999)
-    min_val <- quantile(taxis$tip_amount, 0.01)
-    taxis <- taxis[tip_amount >= min_val & tip_amount <= max_val]
-    print(paste(n-nrow(taxis), " lines removed ", "(",round(nrow(taxis)/n, 2), "%)", sep = ""))
-    #Remove outliers in tolls_amount
-    print("Tolls_amount")
-    n<- nrow(taxis)
-    taxis <- taxis[tolls_amount >= 0]
-    max_val <- quantile(taxis$tolls_amount, 0.999)
-    min_val <- quantile(taxis$tolls_amount, 0.01)
-    taxis <- taxis[tolls_amount >= min_val & tolls_amount <= max_val]
-    print(paste(n-nrow(taxis), " lines removed ", "(",round(nrow(taxis)/n, 2), "%)", sep = ""))
-    #Remove outliers in total_amount
-    print("Total_amount")
-    n<- nrow(taxis)
-    taxis <- taxis[total_amount >= 0]
-    max_val <- quantile(taxis$total_amount, 0.999)
-    min_val <- quantile(taxis$total_amount, 0.01)
-    taxis <- taxis[total_amount >= min_val & total_amount <= max_val]
-    print(paste(n-nrow(taxis), " lines removed ", "(",round(nrow(taxis)/n, 2), "%)", sep = ""))
+    print("Crop the data")
     #Remove outliers in p_long
-    print("P_long")
-    n<- nrow(taxis)
-    max_val <- quantile(taxis$p_long, 0.99)
-    min_val <- quantile(taxis$p_long, 0.01)
-    taxis <- taxis[p_long >= min_val & p_long <= max_val]
-    print(paste(n-nrow(taxis), " lines removed ", "(",round(nrow(taxis)/n, 2), "%)", sep = ""))
-    #Remove outliers in p_lat
-    print("P_lat")
-    n<- nrow(taxis)
-    max_val <- quantile(taxis$p_lat, 0.99)
-    min_val <- quantile(taxis$p_lat, 0.01)
-    taxis <- taxis[p_lat >= min_val & p_lat <= max_val]
-    print(paste(n-nrow(taxis), " lines removed ", "(",round(nrow(taxis)/n, 2), "%)", sep = ""))
+    min.x = -74.03027; max.x = -73.77487; min.y = 40.63720; max.y = 40.87865;
+    taxis <- taxis[p_long > min.x & p_long < max.x & 
+                       p_lat > min.y & p_lat < max.y]#remove entries outside New York
+    taxis <- taxis[d_long > min.x & d_long < max.x & 
+                       d_lat > min.y & d_lat < max.y]#remove entries outside New York
     #Remove outliers in d_long
     print("d_lat")
     n<- nrow(taxis)
-    max_val <- quantile(taxis$d_long, 0.99)
-    min_val <- quantile(taxis$d_long, 0.01)
+    max_val <- max.x
+    min_val <- min.x
     taxis <- taxis[d_long >= min_val & d_long <= max_val]
     print(paste(n-nrow(taxis), " lines removed ", "(",round(nrow(taxis)/n, 2), "%)", sep = ""))
     #Remove outliers in d_lat
     print("d_lat")
     n<- nrow(taxis)
-    max_val <- quantile(taxis$d_lat, 0.99)
-    min_val <- quantile(taxis$d_lat, 0.01)
+    max_val <- max.y
+    min_val <- min.y
     taxis <- taxis[d_lat >= min_val & d_lat <= max_val]
     print(paste(n-nrow(taxis), " lines removed ", "(",round(nrow(taxis)/n, 2), "%)", sep = ""))
     ##Data manipulation
@@ -137,10 +74,9 @@ prepare.DATA <- function(dt_list){
     taxis$DayTime <- "DAY"
     taxis$DayTime[hour(taxis$p_time) >= 20 | hour(taxis$p_time) < 6] <- "NIGHT"
     taxis$DayTime <- as.factor(taxis$DayTime)
-    #setcolorder(taxis, c("license", "p_time", "month", "wday", "weekday", "DayTime",
-                         #"d_time", "trip_dist", "p_long", "p_lat", "d_long", "d_lat",
-                         #"fare_amount", "surcharge", "mta_tax", "tip_amount",
-                         #"tolls_amount", "total_amount"))
+    print("DayDate")
+    taxis[, DayDate := as.factor(day(p_time))]
+   
     
     setorder(taxis, license, p_time)
     assign(paste("taxis", month, sep = "_"), taxis, envir = .GlobalEnv)
